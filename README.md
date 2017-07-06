@@ -1,17 +1,21 @@
 # rowplux
-This plugin allows cordova application to use the biosignalsplux api on an Android device 
+This plugin allows cordova application to use the biosignalsplux pluxapi-0.1.2jar api on an Android device 
 
 ## Requirements
 cordova android version 4.0 or greater
 android version 5.0 or greater
 
 ## Installation
-[//]: # (TODO Add url)
+[//]: # (How to comment code markdown)
 
-cordova plugin add
+See sample folder for test project and cordova instructions
+
+Download plugin from bitbucket
+
+cordova plugin add C:\path_to_plugin\RowPlux
+
 
 ## Methods
-* isEnabled
 * scan
 * startBluetooth
 * stopBluetooth
@@ -24,21 +28,9 @@ cordova plugin add
 * getBattery
 * startRecording
 * stopRecording
+* hasPermissions
+* isEnabled
 
-### isEnabled
-This call will check if Bluetooth is enabled it will also check if geolocation permission has been granted.
-A request to turn on permission may be prompted. A message will return if permission is denied by the user this is applicable for android marshmallow and later.
-
-rowplux.isEnabled(isEnabledSuccess);
-
-No error callback. 
-No params required.
-
-success data {
-    type:"isEnabled",
-    bluetoothOn:true or false,
-    message:Bluetooth on or Bluetooth off
-}
 
 
 ### scan
@@ -47,7 +39,8 @@ No params are required.
 
 rowplux.scan(scanSuccess,scanError);
 
-The scanSuccess callback contains the information
+The scanSuccess callback contains the information 
+
     {
         type:"scan",
         deviceName:"Device name",
@@ -162,8 +155,14 @@ The unPairError callback contains the information
 ### connect
 
 This call will connect to the biosignalsplux device if device not previously paired it will pair using code 123.
+set showMessages to true if you want Toast messages to show on app false to disable.
 
-var params = {"address": macAddress };
+var params = {
+    
+    "address": macAddress, 
+    "showMessages": true or false
+
+    };
 
 rowplux.connect(connectSuccess,connectError,params);
 
@@ -364,6 +363,40 @@ The stopError callback contains the information.
     note for second and subsequent startRecording stopRecording cycles the api throws an error
     
     reciever not registered this requires further investigating.
+
+### hasPermissions
+This call will check device has permission to use geolocation
+A message will return if permission is denied by the user this is applicable for android marshmallow and later.
+
+rowplux.hasPermissions(hasPermissionSuccess);
+
+No error callback.
+
+No params required.
+
+success data {
+
+    type:"hasPermissions",
+    status: true or false    
+    message:"has permission geolocation" or "permission denied geolocation"
+}
+
+### isEnabled
+This call will check if Bluetooth is enabled it will also check if geolocation permission has been granted.
+A request to turn on permission may be prompted. A message will return if permission is denied by the user this is applicable for android marshmallow and later.
+
+rowplux.isEnabled(isEnabledSuccess);
+
+No error callback. 
+No params required.
+
+success data {
+
+    type:"isEnabled",
+    status: true or false
+    bluetoothOn:true or false,
+    message:Bluetooth on or Bluetooth off
+}
 
 
 

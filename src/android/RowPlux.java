@@ -53,6 +53,7 @@ public class RowPlux extends CordovaPlugin {
     private boolean keepCallback = true;
     private boolean isConnected = false;
     private boolean isRecording = false;
+    private boolean alllowToast = false;
 
     private int seq = 0;
 
@@ -78,6 +79,7 @@ public class RowPlux extends CordovaPlugin {
     private final String seqKey         = "sequence";
     private final String channelKey     = "channel";
     private final String sensKek        = "sensitivity";
+    private final String toastKey       = "showMessages";
 
     
     private final boolean isBluetoothOn = true;
@@ -100,7 +102,9 @@ public class RowPlux extends CordovaPlugin {
     CallbackContext getDescriptionCallback;
     CallbackContext getBatteryCallback;   
     CallbackContext recordingCallbackContext;
+    CallbackContext stopRecordingCallbackContext;
     CallbackContext isEnabledCallbackContext;
+    CallbackContext hasPermissionsCallbackContext;
 
 
     @Override
@@ -145,6 +149,7 @@ public class RowPlux extends CordovaPlugin {
 
                     if(seq %100 == 0){
                         JSONObject returnObj = new JSONObject();
+                        addProperty(returnObj, idKey, "startRecording");
                         addProperty(returnObj,dataKey,dataList);
                         addProperty(returnObj,timeKey,timeList);
                         addProperty(returnObj,seqKey,seqList);
@@ -173,14 +178,15 @@ public class RowPlux extends CordovaPlugin {
         }else {
             if (!mBluetoothAdapter.isEnabled()) {
                 Log.d(TAG,"Bluetoot not Enabled asking .....");
-                Toast.makeText(webView.getContext(), "Bluetooth not Enabled ", Toast.LENGTH_LONG).show();
+                //showToast("Bluetooth not Enabled");
+
                 //TODO add to cordova call
                 //Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
                // cordova.startActivityForResult(this,enableBtIntent,90);
 
 
             } else {
-                Toast.makeText(webView.getContext(), "Bluetooth isEnabled ", Toast.LENGTH_LONG).show();
+               //showToast("Bluetooth isEnabled ");
             }
         }
 
@@ -197,7 +203,8 @@ public class RowPlux extends CordovaPlugin {
 
             } else {
                 Log.d(TAG, "result: error:" );
-                Toast.makeText(webView.getContext(), "Bluetooth denied start ", Toast.LENGTH_LONG).show();
+                showToast("Bluetooth Denied start");
+
             }
         }
     }
@@ -277,7 +284,6 @@ public class RowPlux extends CordovaPlugin {
 
                     if(getVersionCallback != null){
                         JSONObject returnObj = new JSONObject();
-                        addProperty(returnObj, statusKey, true);
                         addProperty(returnObj, idKey, "getVersion");
                         addProperty(returnObj,messageKey,parcelable.toString());
                         PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, returnObj);
@@ -295,7 +301,6 @@ public class RowPlux extends CordovaPlugin {
 
                     if(getBatteryCallback != null){
                         JSONObject returnObj = new JSONObject();
-                        addProperty(returnObj, statusKey, true);
                         addProperty(returnObj, idKey, "getBattery");
                         addProperty(returnObj,batKey,batLevel);
                         PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, returnObj);
@@ -311,9 +316,10 @@ public class RowPlux extends CordovaPlugin {
                     Log.d(TAG,"Command reply   :"+crs.getCommandReply());
                     if(cmdReply.contains("OK")){
                         //"Send excess data here because of reciever not register error prevents sending from stopRecording");
-                        if(dataList.size() >0){
+                        if(dataList.size() >0 &&(recordingCallbackContext != null)){
                             Log.d(TAG,"Sending excess data to plugin :"+seq);
                             JSONObject returnObj = new JSONObject();
+                            addProperty(returnObj, idKey, "startRecording");
                             addProperty(returnObj,dataKey,dataList);
                             addProperty(returnObj,timeKey,timeList);
                             addProperty(returnObj,seqKey,seqList);
@@ -324,6 +330,7 @@ public class RowPlux extends CordovaPlugin {
                         dataList.clear();
                         timeList.clear();
                         seqList.clear();
+
                     }
 
                     if(cmdReply.contains("Description")){
@@ -331,7 +338,6 @@ public class RowPlux extends CordovaPlugin {
 
                         if(getDescriptionCallback != null){
                             JSONObject returnObj = new JSONObject();
-                            addProperty(returnObj, statusKey, true);
                             addProperty(returnObj, idKey, "getDescription");
                             addProperty(returnObj,messageKey,cmdReply);
                             PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, returnObj);
@@ -371,10 +377,9 @@ public class RowPlux extends CordovaPlugin {
                 
                 if(scanCallbackContext != null){
                     JSONObject returnObj = new JSONObject();
-                    addProperty(returnObj, statusKey, true);
+                    addProperty(returnObj, idKey, "scan");
                     addProperty(returnObj, nameKey, deviceName);
                     addProperty(returnObj, addressKey, deviceHardwareAddress);
-                    addProperty(returnObj, idKey, "scan");
                     PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, returnObj);
                     pluginResult.setKeepCallback(true);
                     scanCallbackContext.sendPluginResult(pluginResult);
@@ -416,7 +421,10 @@ public class RowPlux extends CordovaPlugin {
 		if ("isEnabled".equals(action)) {
             isEnabled(callbackContext);
 			return true;
-		}else if("scan".equals(action)){
+		}else if("hasPermissions".equals(action)){
+            hasPermissions(callbackContext);
+            return true;
+        }else if("scan".equals(action)){
             scan(args, callbackContext);
             return true;
         }else if("startBluetooth".equals(action)){
@@ -469,35 +477,57 @@ public class RowPlux extends CordovaPlugin {
             if(r == PackageManager.PERMISSION_DENIED)
             {
                 Log.d(TAG, "Permission Denied");
-                if(isEnabledCallbackContext != null){
+                if(hasPermissionsCallbackContext != null){
                     JSONObject returnObj = new JSONObject();
-                    addProperty(returnObj, idKey, "isEnabled");
-                    addProperty(returnObj, messageKey, "Location permission denied");
+                    addProperty(returnObj, idKey, "hasPermissions");
+                    addProperty(returnObj,statusKey,false);
+                    addProperty(returnObj, messageKey, "permission denied geolocation");
                     PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, returnObj);
                     pluginResult.setKeepCallback(true);
-                    isEnabledCallbackContext.sendPluginResult(pluginResult);
-
+                    hasPermissionsCallbackContext.sendPluginResult(pluginResult);
                 }
 
                 return;
             }
         }
         Log.d(TAG, "Permission Granted");
+        if(hasPermissionsCallbackContext != null){
+            JSONObject returnObj = new JSONObject();
+            addProperty(returnObj, idKey, "hasPermissions");
+            addProperty(returnObj,statusKey,true);
+            addProperty(returnObj, messageKey, "has permission geolocation");
+            PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, returnObj);
+            pluginResult.setKeepCallback(true);
+            hasPermissionsCallbackContext.sendPluginResult(pluginResult);
+        }
     }
 
-    private void isEnabled(CallbackContext callbackContext) {
+    private void hasPermissions(CallbackContext callbackContext) {
 
-        isEnabledCallbackContext = callbackContext;
-        Toast.makeText(webView.getContext(), "isEnabled ...", Toast.LENGTH_LONG).show();
+        hasPermissionsCallbackContext = callbackContext;
+        showToast("Check permissions ");
 
         if(cordova.hasPermission(geolocation_permission)) {
             Log.d(TAG, "Has Permission");
+            JSONObject returnObj = new JSONObject();
+            addProperty(returnObj, idKey, "hasPermissions");
+            addProperty(returnObj,statusKey,true);
+            addProperty(returnObj, messageKey, "has permission geolocation");
+            PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, returnObj);
+            pluginResult.setKeepCallback(true);
+            hasPermissionsCallbackContext.sendPluginResult(pluginResult);
         }else{
             Log.d(TAG, "Has No Permission");
             getPermission(SEARCH_REQ_CODE);
         }
 
 
+    }
+
+    private void isEnabled(CallbackContext callbackContext) {
+
+        isEnabledCallbackContext = callbackContext;
+        showToast("Bluetooth isEnabled ");
 
         if(mBluetoothAdapter.isEnabled()){
             JSONObject returnObj = new JSONObject();
@@ -523,7 +553,7 @@ public class RowPlux extends CordovaPlugin {
 	private void scan(JSONArray args, CallbackContext callbackContext) {
 
         scanCallbackContext = callbackContext;
-        Toast.makeText(webView.getContext(), "Scanning ...", Toast.LENGTH_LONG).show();
+        showToast("Scanning ...");
         if(mBluetoothAdapter.isEnabled()){
             bioplux.scan();
         }else{
@@ -531,20 +561,42 @@ public class RowPlux extends CordovaPlugin {
         }
 	}
 	private void startBluetooth(JSONArray args, CallbackContext callbackContext) {
-		Toast.makeText(webView.getContext(),"Starting Bluetooth", Toast.LENGTH_LONG).show();
+        showToast("Starting Bluetooth.. ");
+
         turnOnBT(callbackContext);
 
 	}
 	private void stopBluetooth(JSONArray args, CallbackContext callbackContext) {
-        Toast.makeText(webView.getContext(), "Stopping Bluetooth", Toast.LENGTH_LONG).show();
+        showToast("Stopping Bluetooth.. ");
         turnOffBT(callbackContext);
 
 
 	}
 	private void findPairedDevices(JSONArray args, CallbackContext callbackContext) {
+        showToast("Finding Paired devices... ");
 
-        Toast.makeText(webView.getContext(), "Finding Paired Devices", Toast.LENGTH_LONG).show();
-        findPaired(callbackContext);
+        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if (!mBluetoothAdapter.isEnabled()) {
+            callbackContext.error(createErrorJSONObect(bluetoothOnKey, !isBluetoothOn, "Bluetooth Not Enabled"));
+            return;
+        }
+        Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
+        if (pairedDevices.size() > 0) {
+            for (BluetoothDevice device : pairedDevices) {
+                String deviceName = device.getName();
+                String deviceHardwareAddress = device.getAddress(); // MAC address
+                JSONObject returnObj = new JSONObject();
+                addProperty(returnObj, idKey, "findPaired");
+                addProperty(returnObj, nameKey, deviceName);
+                addProperty(returnObj, addressKey, deviceHardwareAddress);//
+                PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, returnObj);
+                pluginResult.setKeepCallback(true);
+                callbackContext.sendPluginResult(pluginResult);
+
+            }
+        } else {
+            callbackContext.error(createErrorJSONObect(bluetoothOnKey, isBluetoothOn, "No Paired Device"));
+        }
 
 
 	}
@@ -562,7 +614,14 @@ public class RowPlux extends CordovaPlugin {
                 return;
             }
             JSONObject obj = getArgsObject(args);
-            String address = getAddress(obj);
+            String address = "";
+
+            if( getAddress(obj) != null){
+                address = getAddress(obj);
+            }else{
+                callbackContext.error(createErrorJSONObect(bluetoothOnKey, isBluetoothOn, "Invalid Address"));
+                return;
+            }
             Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
             if (pairedDevices.size() > 0) {
                 for (BluetoothDevice device : pairedDevices) {
@@ -572,13 +631,13 @@ public class RowPlux extends CordovaPlugin {
                                     .getMethod("removeBond", (Class[]) null);
                             m.invoke(device, (Object[]) null);
                         } catch (Exception e) {
-                            callbackContext.error(createErrorJSONObect(bluetoothOnKey, !isBluetoothOn, "Unpair error..."));
+                            callbackContext.error(createErrorJSONObect(bluetoothOnKey, isBluetoothOn, "Unpair error..."));
 
                         }
                     }
                 }
                 JSONObject returnObj = new JSONObject();
-                addProperty(returnObj, idKey, "unPair");
+                addProperty(returnObj, idKey, "unpair");
                 addProperty(returnObj, messageKey,"Device unpaired");
                 PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, returnObj);
                 pluginResult.setKeepCallback(true);
@@ -588,12 +647,20 @@ public class RowPlux extends CordovaPlugin {
 		}
 	}
     private void connect(JSONArray args, CallbackContext callbackContext) {
-        Toast.makeText(webView.getContext(), "Connect to bioplux", Toast.LENGTH_LONG).show();
-       //Make global to be used in Broadcast Receiver;
+        showToast("Connecting bioplux.... ");
         connectCallbackContext = callbackContext;
+        JSONObject obj = getArgsObject(args);
+        alllowToast = getToastPermission(obj);
+
+
         if(mBluetoothAdapter.isEnabled()){
-            JSONObject obj = getArgsObject(args);
-            String address = getAddress(obj);
+            String address = "";
+            if( getAddress(obj) != null){
+                address = getAddress(obj);
+            }else{
+                callbackContext.error(createErrorJSONObect(bluetoothOnKey, isBluetoothOn, "Invalid Address"));
+                return;
+            }
             if(!isConnected) {
                 try {
                     bioplux.connect(address);
@@ -608,13 +675,12 @@ public class RowPlux extends CordovaPlugin {
                 callbackContext.error(createErrorJSONObect(connKey, isPluxConn, "Connected"));
             }
         }else{
-            callbackContext.error(createErrorJSONObect(bluetoothOnKey, !isBluetoothOn, "Bluetooth is off"));
+            callbackContext.error(createErrorJSONObect(bluetoothOnKey, !isBluetoothOn, "Bluetooth Not Enabled"));
         }
 
     }
     private void disconnect(JSONArray args, CallbackContext callbackContext) {
-        Toast.makeText(webView.getContext(), "Disconnect from bioplux", Toast.LENGTH_LONG).show();
-        //Make callback global
+        showToast("Disconnecting bioplux...");
         disconnectCallbackContext =callbackContext;
         if(mBluetoothAdapter.isEnabled()) {
             try {
@@ -626,18 +692,26 @@ public class RowPlux extends CordovaPlugin {
                 Log.d(TAG, "NullPoint : " + e);
             }
         }else{
-            callbackContext.error(createErrorJSONObect(bluetoothOnKey, !isBluetoothOn, "Bluetooth is off"));
+            callbackContext.error(createErrorJSONObect(bluetoothOnKey, !isBluetoothOn, "Bluetooth Not Enabled"));
         }
     }    
     private void startRecording(JSONArray args, CallbackContext callbackContext) {
         recordingCallbackContext =callbackContext;
+
         if(mBluetoothAdapter.isEnabled()){
             JSONObject obj = getArgsObject(args);
-            String address = getAddress(obj);
+            String address ="";
+            if( getAddress(obj) != null){
+                address = getAddress(obj);
+            }else{
+                callbackContext.error(createErrorJSONObect(bluetoothOnKey, isBluetoothOn, "Invalid Address"));
+                return;
+            }
             int channel = obj.optInt(channelKey, 1);
             int sens = obj.optInt(sensKek,1);
             Log.d(TAG, "Channel :"+channel);
             if(isConnected) {
+                showToast("Bioplux start");
                 dataList.clear();
                 timeList.clear();
                 seqList.clear();
@@ -657,13 +731,15 @@ public class RowPlux extends CordovaPlugin {
                 callbackContext.error(createErrorJSONObect(connKey, !isPluxConn, "Disconnected"));
             }
         }else{
-            callbackContext.error(createErrorJSONObect(bluetoothOnKey, !isBluetoothOn, "Bluetooth is off"));
+            callbackContext.error(createErrorJSONObect(bluetoothOnKey, !isBluetoothOn, "Bluetooth Not Enabled"));
         }
     }
-    private void stopRecording(JSONArray args, CallbackContext callbackContext) {       
+    private void stopRecording(JSONArray args, CallbackContext callbackContext) {
+        //stopRecordingCallbackContext = callbackContext;
         if(mBluetoothAdapter.isEnabled()){
             if(isConnected) {
                 Log.d(TAG,"Stoping : ");
+                showToast("Bioplux stop");
                 try {
                     bioplux.stop();
                 } catch (BiopluxException e) {
@@ -671,7 +747,16 @@ public class RowPlux extends CordovaPlugin {
                     Log.d(TAG,"Bioplux exception : "+e);
                 }catch (NullPointerException e){
                     Log.d(TAG,"NullPoint : "+e);
+                }catch(IllegalArgumentException e){
+                    //TODO reciever not registered from api
+                    Log.d(TAG,"Receiver not registered : "+e);
                 }
+                JSONObject returnObj = new JSONObject();
+                addProperty(returnObj, idKey, "stopRecording");
+                addProperty(returnObj,messageKey,"Recording Stopped");
+                PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, returnObj);
+                pluginResult.setKeepCallback(true);
+                callbackContext.sendPluginResult(pluginResult);
 
             }else{
                 callbackContext.error(createErrorJSONObect(connKey, !isPluxConn, "Disconnected"));
@@ -682,7 +767,7 @@ public class RowPlux extends CordovaPlugin {
         }
     }
     private void getDescription(JSONArray args, CallbackContext callbackContext) {
-        Toast.makeText(webView.getContext(), "Get Description...", Toast.LENGTH_LONG).show();
+        showToast("GetDescription ");
         getDescriptionCallback = callbackContext;
         if(mBluetoothAdapter.isEnabled()){
             if(isConnected) {
@@ -696,14 +781,14 @@ public class RowPlux extends CordovaPlugin {
                     Log.d(TAG,"NullPoint "+e);
                 }
             }else{
-                callbackContext.error(createErrorJSONObect(connKey, !isPluxConn, "Not Connected"));
+                callbackContext.error(createErrorJSONObect(connKey, !isPluxConn, "Disconnected"));
             }
         }else{
-            callbackContext.error(createErrorJSONObect(bluetoothOnKey, !isBluetoothOn, "Bluetooth is off"));
+            callbackContext.error(createErrorJSONObect(bluetoothOnKey, !isBluetoothOn, "Bluetooth Not Enabled"));
         }
     }
     private void getVersion(JSONArray args, CallbackContext callbackContext) {
-        Toast.makeText(webView.getContext(), "Get Version...", Toast.LENGTH_LONG).show();
+        showToast("GetVersion ");
         getVersionCallback = callbackContext;
         if(mBluetoothAdapter.isEnabled()){
             if(isConnected) {
@@ -717,14 +802,14 @@ public class RowPlux extends CordovaPlugin {
                     Log.d(TAG,"NullPoint "+e);
                 }
             }else{
-                callbackContext.error(createErrorJSONObect(connKey, !isPluxConn, "Not Connected"));
+                callbackContext.error(createErrorJSONObect(connKey, !isPluxConn, "Disconnected"));
             }
         }else{
-            callbackContext.error(createErrorJSONObect(bluetoothOnKey, !isBluetoothOn, "Bluetooth is off"));
+            callbackContext.error(createErrorJSONObect(bluetoothOnKey, !isBluetoothOn, "Bluetooth Not Enabled"));
         }
     }
     private void getBattery(JSONArray args, CallbackContext callbackContext) {
-        Toast.makeText(webView.getContext(), "Battery...", Toast.LENGTH_LONG).show();
+        showToast("Battery level");
         getBatteryCallback = callbackContext;
         if(mBluetoothAdapter.isEnabled()){
             if(isConnected) {
@@ -738,10 +823,10 @@ public class RowPlux extends CordovaPlugin {
                     Log.d(TAG,"NullPoint "+e);
                 }
             }else{
-                callbackContext.error(createErrorJSONObect(connKey, !isPluxConn, "Not Connected"));
+                callbackContext.error(createErrorJSONObect(connKey, !isPluxConn, "Disconnected"));
             }
         }else{
-            callbackContext.error(createErrorJSONObect(bluetoothOnKey, !isBluetoothOn, "Bluetooth is off"));
+            callbackContext.error(createErrorJSONObect(bluetoothOnKey, !isBluetoothOn, "Bluetooth Not Enabled"));
         }
     }
 
@@ -750,7 +835,7 @@ public class RowPlux extends CordovaPlugin {
 		if (msg == null || msg.length() == 0) {
 			callbackContext.error("Empty message!");
 		} else {
-			Toast.makeText(webView.getContext(), msg, Toast.LENGTH_LONG).show();
+            showToast(msg);
             rp.setName(msg);
             String name = rp.getName();
 			callbackContext.success(name);
@@ -788,65 +873,33 @@ public class RowPlux extends CordovaPlugin {
         if (mBluetoothAdapter.isEnabled()) {
             mBluetoothAdapter.disable();
 
-
             JSONObject returnObj = new JSONObject();
             addProperty(returnObj, idKey, "stopBluetooth");
             addProperty(returnObj, bluetoothOnKey, !isBluetoothOn);
-            addProperty(returnObj, messageKey,"Bluetooth off");
+            addProperty(returnObj, connKey, !isPluxConn);
+            addProperty(returnObj, messageKey,"Bluetooth Off");
             PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, returnObj);
             pluginResult.setKeepCallback(true);
-            callbackContext.sendPluginResult(pluginResult);
             callbackContext.sendPluginResult(pluginResult);
 
         }else{
             callbackContext.error(createErrorJSONObect(bluetoothOnKey, !isBluetoothOn, "Bluetooth Not Enabled"));
         }
     }
-    //Find All Paired Devices
-    public void findPaired(CallbackContext callbackContext) {
-        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        if (!mBluetoothAdapter.isEnabled()) {
-            callbackContext.error(createErrorJSONObect(bluetoothOnKey, !isBluetoothOn, "Bluetooth Not Enabled"));
-            return;
-        }
-        Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
-        if (pairedDevices.size() > 0) {
-            for (BluetoothDevice device : pairedDevices) {
-                String deviceName = device.getName();
-                String deviceHardwareAddress = device.getAddress(); // MAC address               
-                JSONObject returnObj = new JSONObject();
-                addProperty(returnObj, statusKey, "OK");
-                addProperty(returnObj, bluetoothOnKey, isBluetoothOn);
-                addProperty(returnObj, nameKey, deviceName);
-                addProperty(returnObj, addressKey, deviceHardwareAddress);//
-                PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, returnObj);
-                pluginResult.setKeepCallback(true);
-                callbackContext.sendPluginResult(pluginResult);
-
-            }
-        } else {
-            callbackContext.error(createErrorJSONObect(bluetoothOnKey, isBluetoothOn, "No Paired Device"));
-        }
-    }
-
-    private void ScanPlux(CallbackContext callbackContext){
-       if(mBluetoothAdapter.isEnabled()){
-           bioplux.scan();
-       }else{
-           callbackContext.error(createErrorJSONObect(bluetoothOnKey, !isBluetoothOn, "Bluetooth is off"));
-       }
-    }
-
-
-
 
 
     /****************************************************************************************
         Utility Functions
 
      ****************************************************************************************/
-    protected void getPermission(int requestCode)
-    {
+
+    private void showToast(String msg){
+        if(alllowToast == true){
+            Toast.makeText(webView.getContext(), msg, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void getPermission(int requestCode){
         cordova.requestPermission(this, requestCode, geolocation_permission);
     }
 
@@ -919,6 +972,10 @@ public class RowPlux extends CordovaPlugin {
         }
 
         return address;
+    }
+
+    private boolean getToastPermission(JSONObject obj){
+       return obj.optBoolean(toastKey,false);
     }
 
 }

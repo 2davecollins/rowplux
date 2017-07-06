@@ -12,9 +12,9 @@
     "ecosystem:cordova",
     "cordova-android"
   ],
-  "author": "david collins",
+  "author": "David collins",
   "license": "ISC",
   "engines": {
-    "0.1.0":{"cordova-android":">4.0.0"}
+    "1.0.0":{"cordova-android":">4.0.0"}
   }
 }

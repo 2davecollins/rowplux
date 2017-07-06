@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+       
+        <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: gap: https://ssl.gstatic.com 'unsafe-eval'; style-src 'self' 'unsafe-inline'; media-src *; img-src 'self' data: content:;">
+        <meta name="format-detection" content="telephone=no">
+        <meta name="msapplication-tap-highlight" content="no">
+        <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width">
+        <!--<link rel="stylesheet" type="text/css" href="css/index.css">-->
+        <link rel="stylesheet" type="text/css" href="js/extra/JQM/jquery.mobile.custom.theme.css">
+        <link rel="stylesheet" type="text/css" href="js/extra/JQM/jquery.mobile.custom.structure.css">
+        <link rel="stylesheet" type="text/css" href="js/extra/JQ/jquery-ui.min.css">
+        <link rel="stylesheet" type="text/css" href="css/override.css">
+
+        <script src="js/extra/JQ/jquery-2.1.4.min.js"></script>    
+        <script src="js/extra/JQ/jquery.jsonp-2.4.0.min.js"></script>   
+    
+        <script src="js/extra/JQ/json2.js"></script>    
+        <script src="js/extra/JQ/jstorage.js"></script>       
+        <script src="js/extra/JQ/jquery-ui.min.js"></script>
+
+        <script src="js/extra/JQM/jquery.mobile.custom.min.js"></script>
+        <script type="text/javascript" src="js/extra/vue.js"></script>
+        <script type="text/javascript" src="js/extra/Chart.min.js"></script>
+
+        <title>RowPlux api</title>
+    </head>
+    <body>
+         <div id="vue-instance">
+
+            <div data-role="page" id="startpage" data-theme="a">
+                <div data-role="header">
+                    <h1>Start page</h1>            
+                </div><!--header-->
+                <div role="main" class="ui-content">
+                    <div id="status">
+                       <label for="bthOn"> Bluetooth :</label>
+                       <input type="radio" id="bthOn">                        
+                       <label for="isConn"> Connected :</label>
+                       <input type="radio" id="isConn">
+                    </div>
+                    <h4>Status :{{status}}</h4>
+                    <h4>Error :{{error}}</h4>
+                    <h4>Paired devices</h4>
+                    <ul>
+                        <li v-for="item in paired">
+                            {{ item.deviceName }}:{{item.address}}<br/>                            
+                        </li>
+                    </ul>
+                    <h4>Bioplux Devices</h4>
+                    <ul>
+                        <li v-for="item in biopluxDevices">
+                            {{ item.deviceName }}:{{item.address}}<br/>
+                            <button v-on:click="selectDevice(item.address)">Connect</button>
+                        </li>
+                    </ul>
+                    <button v-on:click="scan">Scan</button>                   
+                    <button v-on:click="startRecording">Start</button>
+                    <button v-on:click="stopRecording">Stop</button>
+                    <div data-role="fieldcontain">
+                        <fieldset data-role="controlgroup" >
+                            <legend>Select Channel:</legend>
+                                <div class="ui-grid-c">
+                                    <div class="ui-block-a">
+                                        <input type="radio" name="ch-select" id="CH-1" value="1" checked="checked" />
+                                        <label for="CH-1">1</label>
+                                    </div>
+                                    <div class="ui-block-b">
+                                        <input type="radio" name="ch-select" id="CH-2" value="2"  />
+                                        <label for="CH-2">2</label>                                        
+                                    </div>
+                                    <div class="ui-block-c">
+                                        <input type="radio" name="ch-select" id="CH-3" value="3"  />
+                                        <label for="CH-3">3</label>                                        
+                                    </div>
+                                    <div class="ui-block-d">
+                                         <input type="radio" name="ch-select" id="CH-4" value="4"  />
+                                        <label for="CH-4">4</label>                                        
+                                    </div>                              
+                                </div>
+                        </fieldset>
+                    </div>
+                   
+                    <canvas id="pluxChart" width="400" height="400"></canvas>
+                    <h4>{{device}}</h4>
+                    <div class="ui-grid-a">
+                        <div class="ui-block-a">
+                            <button v-on:click="bthOn">Start Bluetooth</button>
+                        </div>
+                        <div class="ui-block-b">
+                             <button v-on:click="bthOff">Stop Bluetooth</button>
+                        </div>
+                        <div class="ui-block-a">                           
+                            <button v-on:click="pairedDevices">Paired</button>                            
+                        </div>
+                        <div class="ui-block-b">
+                            <button v-on:click="unPair">Un-Pair</button>                            
+                        </div>
+                          <div class="ui-block-a">                           
+                            <button v-on:click="connect">Connect</button>
+                        </div>
+                        <div class="ui-block-b">
+                            <button v-on:click="disconnect">Disconnect</button>                            
+                        </div>  
+                         <div class="ui-block-a">                           
+                            <button v-on:click="getDescription">Description</button>
+                        </div>
+                        <div class="ui-block-b">                           
+                            <button v-on:click="getVersion">Version</button>                            
+                        </div>
+                        <div class="ui-block-a">
+                            <button v-on:click="getBattery">Battery</button>
+                        </div>
+                        <div class="ui-block-b">
+                        </div>
+                    </div><!-- /grid-a -->
+                </div><!-- /content -->
+
+                <div data-role="footer" data-position="fixed">
+                    <h4>{{clockDisplay}}</h4>
+                </div><!-- /footer -->
+        
+        
+            </div><!--page-->
+         </div><!--vue-->
+        
+        <script type="text/javascript" src="cordova.js"></script>
+        <script type="text/javascript" src="js/JQM/js"></script> 
+        <script type="text/javascript" src="js/phone/rdobserverpattern.js"></script>       
+        <script type="text/javascript" src="js/phone/rdvue.js"></script>
+        <script type="text/javascript" src="js/phone/rdutilities.js"></script> 
+        <script type="text/javascript" src="js/phone/rdchart.js"></script>       
+       
+        <!--<script type="text/javascript" src="js/index.js"></script>-->
+    </body>
+</html>

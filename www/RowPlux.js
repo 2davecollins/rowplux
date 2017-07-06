@@ -1,7 +1,4 @@
 var exec = require('cordova/exec');
-exports.isEnabled = function(success) {
-    exec(success, null, "RowPlux", "isEnabled",[]);
-};
 exports.scan = function( success, error, params) {
     exec(success, error, "RowPlux", "scan", []);
 };
@@ -40,4 +37,10 @@ exports.getBattery = function( success, error, params) {
 };
 exports.test = function( success, error, params) {
     exec(success, error, "RowPlux", "test", [params]);
+};
+exports.hasPermissions = function(success) {
+    exec(success, null, "RowPlux", "hasPermissions",[]);
+};
+exports.isEnabled = function(success) {
+    exec(success, null, "RowPlux", "isEnabled",[]);
 };
